@@ -8,3 +8,4 @@
 1. файлы с расширением ".tfvars"
 1. файлы, оканчивающиеся на "_override.tf" и "_override.tf.json"
 1. новая строчка
+1. from Pycharm
