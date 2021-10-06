@@ -1,52 +1,70 @@
 # devops-netology
 
-### «2.4. Инструменты Git»
+### «3.1. Работа в терминале, лекция 1»
+1. Ознакомьтесь с графическим интерфейсом VirtualBox, посмотрите как выглядит виртуальная машина, которую создал для вас Vagrant, какие аппаратные ресурсы ей выделены. Какие ресурсы выделены по-умолчанию?
+    ###### ОЗУ: 1024 МБ
+    ###### ЦПУ: 2
+    ###### Жесткий диск: 40 ГБ
+    ###### Видеопамять: 16МБ
 
-1. Найдите полный хеш и комментарий коммита, хеш которого начинается на aefea.
-    ###### git show aefea
-    aefead2207ef7e2aa5dc81a34aedf0cad4c32545
-    Update CHANGELOG.md
+2. Ознакомьтесь с возможностями конфигурации VirtualBox через Vagrantfile: документация. Как добавить оперативной памяти или ресурсов процессора виртуальной машине?<br/>
+
+        config.vm.provider "virtualbox" do |v| <br/>
+            v.memory = 1024 <br/>
+            v.cpus = 2 <br/>
+        end
+        
+3. какой переменной можно задать длину журнала history, и на какой строчке manual это описывается?
+    ###### HISTSIZE
+    862 строка мануала
+    ###### HISTFILESIZE
+    846 строка мануала
+    ###### history-size
+    2399 строка мануала
     
-2. Какому тегу соответствует коммит 85024d3?
-    ###### git show 85024d3 --oneline
-    85024d310 (tag: v0.12.23)
+4. что делает директива ignoreboth в bash?
+    ###### ignoreboth
+    Запрещает записывать в историю команду, начинающуюся с пробела, или дублирующую предыдущую команду. 
     
-3. Сколько родителей у коммита b8d720? Напишите их хеши.
-    ###### git show -s --pretty=%P 85024d3
-    либо
-    ###### git show 85024d3^@
-    Один предок с хешем 4703cb6c1c7a00137142da867588a5752c54fa6a
+5. В каких сценариях использования применимы скобки {} и на какой строчке man bash это описано?
+    ###### строка 257
+    Допустимо применять  там, где разрешено распознавать зарезервированное слово (например переменную, константу и т.п.).
+    Также в них можно выполнить подстановку элементов из списка, своего рода итератор.
     
-4. Перечислите хеши и комментарии всех коммитов которые были сделаны между тегами v0.12.23 и v0.12.24.
-    ###### git log --oneline v0.12.23...v0.12.24
-    - 33ff1c03b (tag: v0.12.24) v0.12.24
-    - b14b74c49 [Website] vmc provider links
-    - 3f235065b Update CHANGELOG.md
-    - 6ae64e247 registry: Fix panic when server is unreachable
-    - 5c619ca1b website: Remove links to the getting started guide's old location
-    - 06275647e Update CHANGELOG.md
-    - d5f9411f5 command: Fix bug when using terraform login on Windows
-    - 4b6d06cc5 Update CHANGELOG.md
-    - dd01a3507 Update CHANGELOG.md
-    - 225466bc3 Cleanup after v0.12.23 release
+6. С учётом ответа на предыдущий вопрос, как создать однократным вызовом touch 100000 файлов? Получится ли аналогичным образом создать 300000? Если нет, то почему?
+    ###### touch file{1..100000}.txt
+    В моем случае это невозможно.
+    Экспериментальным путем выяснил, что максимально за раз можно создать 87281 файл.
+            
+7. В man bash поищите по /\[\[. Что делает конструкция [[ -d /tmp ]]
+    ###### Выражение в скобках возвращает статус 0 или 1 в зависимости от оценки условного выражения.
+    Т.е. в данном случае проверяется существует ли директория /tmp
+        
+8. Основываясь на знаниях о просмотре текущих (например, PATH) и установке новых переменных; командах, которые мы рассматривали, добейтесь в выводе type -a bash в виртуальной машине наличия первым пунктом в списке:
+
+        bash is /tmp/new_path_directory/bash
+        bash is /usr/local/bin/bash
+        bash is /bin/bash
+    (прочие строки могут отличаться содержимым и порядком) В качестве ответа приведите команды, которые позволили вам добиться указанного вывода или соответствующие скриншоты.
+        
+    ###### Листинг:
+            vagrant@ubuntu-focal:~$ type -a bash
+            bash is /usr/local/bin/bash
+            bash is /usr/bin/bash
+            bash is /bin/bash
+            vagrant@ubuntu-focal:~$ mkdir /tmp/new_path_directory
+            vagrant@ubuntu-focal:~$ cp /bin/bash /tmp/new_path_directory/
+            vagrant@ubuntu-focal:~$ PATH=/tmp/new_path_directory/:$PATH
+            vagrant@ubuntu-focal:~$ type -a bash
+            bash is /tmp/new_path_directory/bash
+            bash is /usr/local/bin/bash
+            bash is /usr/bin/bash
+            bash is /bin/bash
+            vagrant@ubuntu-focal:~$
     
-5. Найдите коммит в котором была создана функция func providerSource, ее определение в коде выглядит так func providerSource(...) (вместо троеточего перечислены аргументы).
-    ###### git log -S'func providerSource('
-    commit 8c928e83589d90a031f811fae52a81be7153e82f
+ 9. Чем отличается планирование команд с помощью batch и at?
+    ###### at
+    Выполняет команды в указанное время.
+    ###### batch
+    Выполняет команды, когда позволяют уровни загрузки системы; другими словами, когда среднее значение нагрузки падает ниже 1,5 или значения, указанного в вызове atd.
     
-6. Найдите все коммиты в которых была изменена функция globalPluginDirs.
-    ###### git grep --break --heading 'func globalPluginDirs'
-    подставляем найденный файл в следующую команду
-    ###### git log --no-patch --oneline -L :globalPluginDirs:plugins.go
-    - 78b122055 Remove config.go and update things using its aliases
-    - 52dbf9483 keep .terraform.d/plugins for discovery
-    - 41ab0aef7 Add missing OS_ARCH dir to global plugin paths
-    - 66ebff90c move some more plugin search path logic to command
-    - 8364383c3 Push plugin discovery down into command package
-    
- 7. Кто автор функции synchronizedWriters?
-    ###### git log --pretty='format:%C(auto)%h (%an, %ad)' -S'func synchronizedWriters'
-    Получаем:
-    - bdfea50cc (James Bardin, Mon Nov 30 18:02:04 2020 -0500)
-    - 5ac311e2a (Martin Atkins, Wed May 3 16:25:41 2017 -0700)
-    Таким образом автор функции Martin Atkins, т.к. он первый её написал.
