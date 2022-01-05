@@ -1,94 +1,234 @@
 # devops-netology
 
-### «3.3. Операционные системы, лекция 1»
-1. Какой системный вызов делает команда cd? В прошлом ДЗ мы выяснили, что cd не является самостоятельной программой, это shell builtin, поэтому запустить strace непосредственно на cd не получится. Тем не менее, вы можете запустить strace на /bin/bash -c 'cd /tmp'. В этом случае вы увидите полный список системных вызовов, которые делает сам bash при старте. Вам нужно найти тот единственный, который относится именно к cd. Обратите внимание, что strace выдаёт результат своей работы в поток stderr, а не в stdout.
-    ###### chdir("/tmp")
+### «3.4. Операционные системы, лекция 2»
+1. На лекции мы познакомились с node_exporter. В демонстрации его исполняемый файл запускался в background. Этого достаточно для демо, но не для настоящей production-системы, где процессы должны находиться под внешним управлением. Используя знания из лекции по systemd, создайте самостоятельно простой unit-файл для node_exporter:
+    поместите его в автозагрузку,
+    предусмотрите возможность добавления опций к запускаемому процессу через внешний файл (посмотрите, например, на systemctl cat cron),
+    удостоверьтесь, что с помощью systemctl процесс корректно стартует, завершается, а после перезагрузки автоматически поднимается.
     
-2. Попробуйте использовать команду file на объекты разных типов на файловой системе. Например:
-
-        vagrant@netology1:~$ file /dev/tty
-        /dev/tty: character special (5/0)
-        vagrant@netology1:~$ file /dev/sda
-        /dev/sda: block special (8/0)
-        vagrant@netology1:~$ file /bin/bash
-        /bin/bash: ELF 64-bit LSB shared object, x86-64        
-   Используя strace выясните, где находится база данных file на основании которой она делает свои догадки.
-   ###### Похоже, что /usr/share/misc/magic.mgc
-    openat(AT_FDCWD, "/usr/share/misc/magic.mgc", O_RDONLY) = 3
-   ###### Также пытается искать в пользовательской папке
-    stat("/home/vagrant/.magic.mgc", 0x7ffd65fca240) = -1 ENOENT (No such file or directory) 
-
-3.  Предположим, приложение пишет лог в текстовый файл. Этот файл оказался удален (deleted в lsof), однако возможности сигналом сказать приложению переоткрыть файлы или просто перезапустить приложение – нет. Так как приложение продолжает писать в удаленный файл, место на диске постепенно заканчивается. Основываясь на знаниях о перенаправлении потоков предложите способ обнуления открытого удаленного файла (чтобы освободить место на файловой системе).
-    ###### Мне нравятся вот такие варианты:
+    Установлен.  
+    <img src="/img/9100.png" alt="9100" title="9100" />
     
-        vagrant@ubuntu-focal:~$ cp /dev/null log_file
-        vagrant@ubuntu-focal:~$ cat /dev/null > log_file
-   
-   ###### Не совсем понял вопрос про имя удаленного файла.  По всей видимости log_file (deleted)
-    Воспроизвести в lsof постоянно пишущийся лог-файл у меня не получается.
-    Также прочитал, что можно убить процесс с удаленным файлом, а затем освободить место, использую перенаправление вывода:
+    Создал конфиг:
             
-            lsof +L1
-            ps -p 1366 # где 1366 искомый PID
-            > /proc/1366/fd/4 # где 4 искомый fd
+            root@ubuntu-focal:/home/vagrant# cat /etc/systemd/system/node_exporter.service
+            [Unit]
+            Description=Node Exporter
+            
+            [Service]
+            ExecStart=/home/vagrant/node_exporter-1.3.1.linux-amd64/node_exporter $OPTIONS
+            EnvironmentFile=-/etc/default/node_exporter
+            KillMode=process
+            Restart=on-failure
+            
+            [Install]
+            WantedBy=multi-user.target
     
-4. Занимают ли зомби-процессы какие-то ресурсы в ОС (CPU, RAM, IO)?
-    ###### Зомби-процессы освобождают ресурсы, но оставляют запись в таблице процессов
+    Сервис успешно стартует.
+            
+            root@ubuntu-focal:/home/vagrant/node_exporter-1.3.1.linux-amd64# systemctl start node_exporter.service
+            root@ubuntu-focal:/home/vagrant/node_exporter-1.3.1.linux-amd64# systemctl status node_exporter
+            ● node_exporter.service - Node Exporter
+                 Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; vendor preset: enabled)
+                 Active: active (running) since Tue 2022-01-04 18:18:56 UTC; 5s ago
+               Main PID: 3443 (node_exporter)
+                  Tasks: 4 (limit: 1136)
+                 Memory: 13.5M
+                 CGroup: /system.slice/node_exporter.service
+                         └─3443 /home/vagrant/node_exporter-1.3.1.linux-amd64/node_exporter
+            root@ubuntu-focal:/home/vagrant/node_exporter-1.3.1.linux-amd64# ps -e |grep node_exporter
+            3443 ?        00:00:00 node_exporter
+    
+    Добавляю сервис в автозагрузу:
+            
+            sudo systemctl enable node_exporter
+    
+    Остановка и запуск:
+    
+            root@ubuntu-focal:/home/vagrant# systemctl stop node_exporter.service
+            root@ubuntu-focal:/home/vagrant# systemctl status node_exporter.service
+            ● node_exporter.service - Node Exporter
+                 Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; vendor preset: enabled)
+                 Active: inactive (dead) since Wed 2022-01-05 07:56:24 UTC; 2s ago
+                Process: 77526 ExecStart=/home/vagrant/node_exporter-1.3.1.linux-amd64/node_exporter $OPTIONS (code=killed, signal=TERM)
+               Main PID: 77526 (code=killed, signal=TERM)
+            
+            Jan 05 07:53:22 ubuntu-focal node_exporter[77526]: ts=2022-01-05T07:53:22.225Z caller=node_exporter.go:115 level=info collector=udp_queues
+            Jan 05 07:53:22 ubuntu-focal node_exporter[77526]: ts=2022-01-05T07:53:22.225Z caller=node_exporter.go:115 level=info collector=uname
+            Jan 05 07:53:22 ubuntu-focal node_exporter[77526]: ts=2022-01-05T07:53:22.225Z caller=node_exporter.go:115 level=info collector=vmstat
+            Jan 05 07:53:22 ubuntu-focal node_exporter[77526]: ts=2022-01-05T07:53:22.225Z caller=node_exporter.go:115 level=info collector=xfs
+            Jan 05 07:53:22 ubuntu-focal node_exporter[77526]: ts=2022-01-05T07:53:22.225Z caller=node_exporter.go:115 level=info collector=zfs
+            Jan 05 07:53:22 ubuntu-focal node_exporter[77526]: ts=2022-01-05T07:53:22.225Z caller=node_exporter.go:199 level=info msg="Listening on" address=:9100
+            Jan 05 07:53:22 ubuntu-focal node_exporter[77526]: ts=2022-01-05T07:53:22.225Z caller=tls_config.go:195 level=info msg="TLS is disabled." http2=false
+            Jan 05 07:56:24 ubuntu-focal systemd[1]: Stopping Node Exporter...
+            Jan 05 07:56:24 ubuntu-focal systemd[1]: node_exporter.service: Succeeded.
+            Jan 05 07:56:24 ubuntu-focal systemd[1]: Stopped Node Exporter.
+            root@ubuntu-focal:/home/vagrant#
+            root@ubuntu-focal:/home/vagrant#
+            root@ubuntu-focal:/home/vagrant# systemctl start node_exporter.service
+            root@ubuntu-focal:/home/vagrant#
+            root@ubuntu-focal:/home/vagrant# systemctl status node_exporter.service
+            ● node_exporter.service - Node Exporter
+                 Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; vendor preset: enabled)
+                 Active: active (running) since Wed 2022-01-05 07:56:50 UTC; 3s ago
+               Main PID: 77732 (node_exporter)
+                  Tasks: 4 (limit: 1136)
+                 Memory: 3.1M
+                 CGroup: /system.slice/node_exporter.service
+                         └─77732 /home/vagrant/node_exporter-1.3.1.linux-amd64/node_exporter
+            
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=thermal_zone
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=time
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=timex
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=udp_queues
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=uname
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=vmstat
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=xfs
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:50.999Z caller=node_exporter.go:115 level=info collector=zfs
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:51.000Z caller=node_exporter.go:199 level=info msg="Listening on" address=:9100
+            Jan 05 07:56:51 ubuntu-focal node_exporter[77732]: ts=2022-01-05T07:56:51.001Z caller=tls_config.go:195 level=info msg="TLS is disabled." http2=false
+            root@ubuntu-focal:/home/vagrant#
+    
+    После перезагрузки процесс успешно поднимается автоматически:
+    
+            77 updates can be applied immediately.
+            To see these additional updates run: apt list --upgradable
+            
+            
+            Last login: Tue Jan  4 18:24:45 2022 from 10.0.2.2
+            vagrant@ubuntu-focal:~$ sudo su
+            root@ubuntu-focal:/home/vagrant#
+            root@ubuntu-focal:/home/vagrant#
+            root@ubuntu-focal:/home/vagrant#
+            root@ubuntu-focal:/home/vagrant# systemctl status node_exporter.service
+            ● node_exporter.service - Node Exporter
+                 Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; vendor preset: enabled)
+                 Active: active (running) since Wed 2022-01-05 07:59:11 UTC; 36s ago
+               Main PID: 637 (node_exporter)
+                  Tasks: 4 (limit: 1131)
+                 Memory: 3.7M
+                 CGroup: /system.slice/node_exporter.service
+                         └─637 /home/vagrant/node_exporter-1.3.1.linux-amd64/node_exporter
+            
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=thermal_zone
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=time
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=timex
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=udp_queues
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=uname
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=vmstat
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=xfs
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:115 level=info collector=zfs
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.768Z caller=node_exporter.go:199 level=info msg="Listening on" address=:9100
+            Jan 05 07:59:11 ubuntu-focal node_exporter[637]: ts=2022-01-05T07:59:11.778Z caller=tls_config.go:195 level=info msg="TLS is disabled." http2=false
+            root@ubuntu-focal:/home/vagrant#                                                                                                                    
+
+2. Ознакомьтесь с опциями node_exporter и выводом /metrics по-умолчанию. Приведите несколько опций, которые вы бы выбрали для базового мониторинга хоста по CPU, памяти, диску и сети.
+
+    CPU:
+
+        node_cpu_seconds_total{cpu="0",mode="idle"} 478.29
+        node_cpu_seconds_total{cpu="0",mode="iowait"} 9.85
+        node_cpu_seconds_total{cpu="0",mode="irq"} 0
+        node_cpu_seconds_total{cpu="0",mode="nice"} 0
+        node_cpu_seconds_total{cpu="0",mode="softirq"} 2.44
+        node_cpu_seconds_total{cpu="0",mode="steal"} 0
+        node_cpu_seconds_total{cpu="0",mode="system"} 7.7
+        node_cpu_seconds_total{cpu="0",mode="user"} 10.43
+        node_cpu_seconds_total{cpu="1",mode="idle"} 477.52
+        node_cpu_seconds_total{cpu="1",mode="iowait"} 10.73
+
+    Память:
+
+        node_memory_Active_anon_bytes 6.1523968e+08
+        node_memory_Active_bytes 7.0637568e+08
+        node_memory_Active_file_bytes 9.1136e+07
+        node_memory_AnonHugePages_bytes 0
+
+    Диск:
+    
+        node_disk_io_time_seconds_total{device="sda"} 30.164
+        node_disk_io_time_seconds_total{device="sdb"} 1.412
+        node_disk_io_time_seconds_total{device="sr0"} 0
+        node_disk_io_time_weighted_seconds_total{device="sda"} 19.072
+        node_disk_io_time_weighted_seconds_total{device="sdb"} 1.724
+        node_disk_io_time_weighted_seconds_total{device="sr0"} 0
         
-5. В iovisor BCC есть утилита opensnoop:
-
-        root@vagrant:~# dpkg -L bpfcc-tools | grep sbin/opensnoop
-        /usr/sbin/opensnoop-bpfcc
-
-    На какие файлы вы увидели вызовы группы open за первую секунду работы утилиты? Воспользуйтесь пакетом bpfcc-tools для Ubuntu 20.04. Дополнительные сведения по установке.
+    Сеть:
     
-   ###### в моем случае:
-        vagrant@ubuntu-focal:~$ sudo /usr/sbin/opensnoop-bpfcc
-        PID    COMM               FD ERR PATH
-        702    vminfo              4   0 /var/run/utmp
-        583    dbus-daemon        -1   2 /usr/local/share/dbus-1/system-services
-        583    dbus-daemon        21   0 /usr/share/dbus-1/system-services
-        583    dbus-daemon        -1   2 /lib/dbus-1/system-services
-        583    dbus-daemon        21   0 /var/lib/snapd/dbus-1/system-services/
-    
-6. Какой системный вызов использует uname -a? Приведите цитату из man по этому системному вызову, где описывается альтернативное местоположение в /proc, где можно узнать версию ядра и релиз ОС.
+        node_network_address_assign_type{device="enp0s3"} 0
+        node_network_address_assign_type{device="lo"} 0
+        node_network_carrier{device="enp0s3"} 1
+        node_network_carrier{device="lo"} 1r
+        node_network_carrier_changes_total{device="enp0s3"} 2
+        node_network_carrier_changes_total{device="lo"} 0
 
-    ###### <sys/utsname.h>
-         Part of the utsname information is also accessible via /proc/sys/kernel/{ostype, hostname, osrelease, version,
-       domainname}.      
+3. Установите в свою виртуальную машину Netdata. Воспользуйтесь готовыми пакетами для установки (sudo apt install -y netdata). После успешной установки:
+    ###### в конфигурационном файле /etc/netdata/netdata.conf в секции [web] замените значение с localhost на bind to = 0.0.0.0,
+    ###### добавьте в Vagrantfile проброс порта Netdata на свой локальный компьютер и сделайте vagrant reload:
+        config.vm.network "forwarded_port", guest: 19999, host: 19999
+    После успешной перезагрузки в браузере на своем ПК (не в виртуальной машине) вы должны суметь зайти на localhost:19999. Ознакомьтесь с метриками, которые по умолчанию собираются Netdata и с комментариями, которые даны к этим метрикам.
+    
+    Успех:  
+    <img src="/img/netdata.png" alt="netdata" title="netdata" />
+    
+4. Можно ли по выводу dmesg понять, осознает ли ОС, что загружена не на настоящем оборудовании, а на системе виртуализации?
+    ###### Судя по ответу команды, ДА:
+     
+        root@ubuntu-focal:/home/vagrant# dmesg | grep virtual
+        [    0.012644] CPU MTRRs all blank - virtualized system.
+        [    0.216818] Booting paravirtualized kernel on KVM
+        [    5.373059] systemd[1]: Detected virtualization oracle.
+        root@ubuntu-focal:/home/vagrant#
+        
+5. Как настроен sysctl fs.nr_open на системе по-умолчанию? Узнайте, что означает этот параметр. Какой другой существующий лимит не позволит достичь такого числа (ulimit --help)?
+       
+       root@ubuntu-focal:/home/vagrant# sysctl -n fs.nr_open
+       1048576
+       root@ubuntu-focal:/home/vagrant# cat /proc/sys/fs/nr_open
+       1048576
+
+    Это максимальное количество открытых файловых дескрипторов(системное ограничение).
+    Есть также пользовательские лимиты мягкий и жесткий(Hard, Soft):
+    
+        root@ubuntu-focal:/home/vagrant# ulimit -Sn
+        1024
+        root@ubuntu-focal:/home/vagrant# ulimit -Hn
+        1048576
+
+   Мягкий лимит может быть увеличен. Жесткий не может быть увеличен.
+   Но ни тот, ни другой лимиты не могут превысить системный fs.nr_open
+
+    
+6. Запустите любой долгоживущий процесс (не ls, который отработает мгновенно, а, например, sleep 1h) в отдельном неймспейсе процессов; покажите, что ваш процесс работает под PID 1 через nsenter. Для простоты работайте в данном задании под root (sudo -i). Под обычным пользователем требуются дополнительные опции (--map-root-user) и т.д.
+
+        root@ubuntu-focal:/home/vagrant# unshare -f --pid --mount-proc sleep 1h
+        bg
+        ^Z
+        [1]+  Stopped                 unshare -f --pid --mount-proc sleep 1h
+        root@ubuntu-focal:/home/vagrant# ps -e | grep sleep
+           6955 pts/0    00:00:00 sleep
+        root@ubuntu-focal:/home/vagrant# nsenter -t 6955 -p -m
+        root@ubuntu-focal:/# ps
+           PID TTY          TIME CMD
+             1 pts/0    00:00:00 sleep
+             2 pts/0    00:00:00 bash
+            13 pts/0    00:00:00 ps
+        root@ubuntu-focal:/#   
    
-7. Чем отличается последовательность команд через ; и через && в bash? Например:
-        
-        root@netology1:~# test -d /tmp/some_dir; echo Hi
-        Hi
-        root@netology1:~# test -d /tmp/some_dir && echo Hi
-        root@netology1:~#
-      Есть ли смысл использовать в bash &&, если применить set -e?
-    ###### && - условный оператор, логическое И
-    ###### ;  - разделитель последовательных команд
-    Т.е. в первом случае echo выполнится вне зависимости от результата test, а во втором случае только если test будет успешным
-    set -e нет смысла использовать с логическим И, т.к. эта опция выполнит выход из выполнения команд, если хотя бы одна команда вернет ненулевой статус.
-    Есть смысл использовать set -e в скриптах в некоторых случаях при отладке.
+7. Найдите информацию о том, что такое :(){ :|:& };:. Запустите эту команду в своей виртуальной машине Vagrant с Ubuntu 20.04 (это важно, поведение в других ОС не проверялось). Некоторое время все будет "плохо", после чего (минуты) – ОС должна стабилизироваться. Вызов dmesg расскажет, какой механизм помог автоматической стабилизации. Как настроен этот механизм по-умолчанию, и как изменить число процессов, которое можно создать в сессии?
+   
+   ###### По всей видимости это fork-бомба — вредоносная или ошибочно написанная программа, бесконечно создающая свои копии (системным вызовом fork()), которые обычно также начинают создавать свои копии и т. д.
+   По информации dmesg:
+   
+       [  226.114088] cgroup: fork rejected by pids controller in /user.slice/user-1000.slice/session-4.scope
+
+   Т.е. сработал сgroups - это способ ограничить ресурсы внутри конкретной группы процессов.
+   
+   Текущие ограничения можно увидеть командой:
     
- 8. Из каких опций состоит режим bash set -euxo pipefail и почему его хорошо было бы использовать в сценариях?
- 
-    ###### set -e Опция предписывает bash немедленно выйти, если какая-либо команда имеет ненулевой статус выхода.
-    ###### set -u влияет на переменные. При установке ссылка на любую переменную, которую вы ранее не определяли, за исключением $* и$@, является ошибкой и приводит к немедленному завершению работы программы.
-    ###### set -o pipefail этот параметр предотвращает маскировку ошибок в конвейере. Если какая-либо команда в конвейере завершится неудачно, этот код возврата будет использоваться в качестве кода возврата всего конвейера.
-    ###### set -x включает режим командной оболочки, в котором все выполняемые команды выводятся на терминал.
-    
-    В сценариях этот набор удобно было бы использовать для отладки. Мы сразу сможем задебажить код, и не допустим ошибки на продуктив.
-        
- 9. Используя -o stat для ps, определите, какой наиболее часто встречающийся статус у процессов в системе. В man ps ознакомьтесь (/PROCESS STATE CODES) что значат дополнительные к основной заглавной буквы статуса процессов. Его можно не учитывать при расчете (считать S, Ss или Ssl равнозначными).
-    ###### самые частые у меня :
-    ###### S*(S,S+,Ss,Ssl,Ss+) - Процессы, ожидающие завершения события
-    ###### I*(I,I<) - бездействие потока ядра
-    Дополнительные символы, это определенные парметры процессов, например приоритет выполнения.
-                
-                <    high-priority (not nice to other users)
-                N    low-priority (nice to other users)
-                L    has pages locked into memory (for real-time and custom IO)
-                s    is a session leader
-                l    is multi-threaded (using CLONE_THREAD, like NPTL pthreads do)
-                +    is in the foreground process group
-    
+       root@ubuntu-focal:/home/vagrant# ulimit -u
+       15587
+
+   Изменить лимит можно командой:
+   ###### ulimit -u 100
+   , где 100 - это новое ограничение.
