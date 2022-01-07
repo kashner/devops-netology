@@ -66,13 +66,13 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 ```
 Страница загрузилась за 637 мс. Дольше всех обрабатывался второй запрос (303 мс), т.е. первый успешный запрос (с кодом 200):
 
-![stackoverflow_network](C:\Dev\devops-netology\img\stackoverflow_page.png "stackoverflow")
+![stackoverflow_network](/img/stackoverflow_page.png "stackoverflow")
 
 ---
 ---
 3. Какой IP адрес у вас в интернете?
 ---
-![whoer](C:\Dev\devops-netology\img\whoer.png "whoer")
+![whoer](/img/whoer.png "whoer")
 
 ---
 ---
@@ -157,7 +157,7 @@ Keys:  Help   Display mode   Restart statistics   Order of fields   quit
 ```
 Есть также вариант со включенным X11-Forwarding'ом:
 
-![mtr](C:\Dev\devops-netology\img\mtr.png "mtr")
+![mtr](/img/mtr.png "mtr")
 
 В любом случае самые большие задержки получиличь на 4-м хопе (10.110.2.128)
 
