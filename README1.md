@@ -1,174 +1,269 @@
 # devops-netology
 
-### «3.2. Работа в терминале, лекция 2»
-1. Какого типа команда cd? Попробуйте объяснить, почему она именно такого типа; опишите ход своих мыслей, если считаете что она могла бы быть другого типа.
-        
-    > Это встроенная команда Bash, которая меняет текущую папку только для оболочки, в которой выполняется. Её нет в файловой системе. 
-    Я очень слабо могу представить себе её как отдельную от shell программу.                                                                                                  
-        
-2. Какая альтернатива без pipe команде grep <some_string> <some_file> | wc -l? man grep поможет в ответе на этот вопрос. Ознакомьтесь с документом о других подобных некорректных вариантах использования pipe.
- 
-        grep -c <some_string> <some_file>
-                                                                                                                                                                                                                   
-3. Какой процесс с PID 1 является родителем для всех процессов в вашей виртуальной машине Ubuntu 20.04?
+### «3.6. Компьютерные сети, лекция 1»
+1.  Работа c HTTP через телнет.
+   * Подключитесь утилитой телнет к сайту stackoverflow.com telnet stackoverflow.com 80
+   * отправьте HTTP запрос
+```GET /questions HTTP/1.0
+HOST: stackoverflow.com
+[press enter]
+[press enter]
+```
+   * В ответе укажите полученный HTTP код, что он означает?
+---
+```buildoutcfg
+vagrant@ubuntu-focal:~$ telnet stackoverflow.com 80
+Trying 151.101.129.69...
+Connected to stackoverflow.com.
+Escape character is '^]'.
+GET /questions HTTP/1.0
+HOST: stackoverflow.com
 
-    > systemd
+HTTP/1.1 301 Moved Permanently
+cache-control: no-cache, no-store, must-revalidate
+location: https://stackoverflow.com/questions
+x-request-guid: f9ea2aa0-7212-4c1f-9cc0-8c0aad3b7276
+feature-policy: microphone 'none'; speaker 'none'
+content-security-policy: upgrade-insecure-requests; frame-ancestors 'self' https://stackexchange.com
+Accept-Ranges: bytes
+Date: Thu, 06 Jan 2022 22:35:20 GMT
+Via: 1.1 varnish
+Connection: close
+X-Served-By: cache-hhn4080-HHN
+X-Cache: MISS
+X-Cache-Hits: 0
+X-Timer: S1641508521.580849,VS0,VE170
+Vary: Fastly-SSL
+X-DNS-Prefetch-Control: off
+Set-Cookie: prov=bad74251-2482-4998-0d67-fd18ced79725; domain=.stackoverflow.com; expires=Fri, 01-Jan-2055 00:00:00 GMT; path=/; HttpOnly
 
-4. Как будет выглядеть команда, которая перенаправит вывод stderr ls на другую сессию терминала?
+Connection closed by foreign host.
+vagrant@ubuntu-focal:~$
+```
+В данном случае код редиректа 301 говорит о том, что ресурс перемещен на https://stackoverflow.com/questions
 
-        vagrant@ubuntu-focal:~$ tty
-        /dev/pts/0
-        vagrant@ubuntu-focal:~$ ls 2>/dev/pts/1
-        -bash: /dev/pts/1: Permission denied
+---
+---
+2. Повторите задание 1 в браузере, используя консоль разработчика F12.
+* откройте вкладку Network
+* отправьте запрос http://stackoverflow.com
+* найдите первый ответ HTTP сервера, откройте вкладку Headers
+* укажите в ответе полученный HTTP код.
+* проверьте время загрузки страницы, какой запрос обрабатывался дольше всего?
+* приложите скриншот консоли браузера в ответ.
+---
+Первый запрос:
+```buildoutcfg
+Request URL: http://stackoverflow.com/
+Request Method: GET
+Status Code: 307 Internal Redirect
+Referrer Policy: strict-origin-when-cross-origin
+Location: https://stackoverflow.com/
+Non-Authoritative-Reason: HSTS
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.85 YaBrowser/21.11.4.727 Yowser/2.5 Safari/537.36
+```
+Страница загрузилась за 637 мс. Дольше всех обрабатывался второй запрос (303 мс), т.е. первый успешный запрос (с кодом 200):
 
-5. Получится ли одновременно передать команде файл на stdin и вывести ее stdout в другой файл? Приведите работающий пример.
+![stackoverflow_network](C:\Dev\devops-netology\img\stackoverflow_page.png "stackoverflow")
 
-        vagrant@ubuntu-focal:~$ cat test.txt
-        12345
-        123
-        45
-        12
-        vagrant@ubuntu-focal:~$ cat test2.txt
-        cat: test2.txt: No such file or directory
-        agrant@ubuntu-focal:~$ cat < test.txt > test2.txt
-        vagrant@ubuntu-focal:~$ cat test2.txt
-        12345
-        123
-        45
-        12
-        vagrant@ubuntu-focal:~$
+---
+---
+3. Какой IP адрес у вас в интернете?
+---
+![whoer](C:\Dev\devops-netology\img\whoer.png "whoer")
 
-6. Получится ли находясь в графическом режиме, вывести данные из PTY в какой-либо из эмуляторов TTY? Сможете ли вы наблюдать выводимые данные?
+---
+---
 
-    > У меня получилось перенаправить и наблюдать
-    
-        vagrant@ubuntu-focal:~$ tty
-        /dev/pts/0
-        vagrant@ubuntu-focal:~$ echo Something  > /dev/tty1
-        vagrant@ubuntu-focal:~$   
-        
-    > тем временем в другом терминале:
-        
-       vagrant@ubuntu-focal:~$ tty
-       /dev/tty1
-       vagrant@ubuntu-focal:~$ Something
-       
-       vagrant@ubuntu-focal:~$                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+4. Какому провайдеру принадлежит ваш IP адрес? Какой автономной системе AS? Воспользуйтесь утилитой whois
+---
+```buildoutcfg
+vagrant@ubuntu-focal:~$ whois 93.185.192.92 | grep 'netname'
+netname:        AVIEL-NET
+vagrant@ubuntu-focal:~$ whois 93.185.192.92 | grep 'origin'
+origin:         AS35271
+vagrant@ubuntu-focal:~$
+```
 
-7. Выполните команду bash 5>&1. К чему она приведет? Что будет, если вы выполните echo netology > /proc/$$/fd/5? Почему так происходит?
+---
+---
 
-    > Командой bash 5>&1 будет создан дескриптор 5, который будет перенаправлен в стандартный вывод
-    
-    > Командой  echo netology > /proc/$$/fd/5  будет записано netology в 5-й дескриптор, который был перенаправлен в стандартный вывод                                                                                                                                        
+5. Через какие сети проходит пакет, отправленный с вашего компьютера на адрес 8.8.8.8? Через какие AS? Воспользуйтесь утилитой traceroute
+---
+```buildoutcfg
+vagrant@ubuntu-focal:~$ traceroute -IAn 8.8.8.8
+traceroute to 8.8.8.8 (8.8.8.8), 30 hops max, 60 byte packets
+ 1  10.0.2.2 [*]  0.205 ms  0.166 ms  0.150 ms
+ 2  192.168.2.1 [*]  1.296 ms  1.278 ms  1.310 ms
+ 3  10.110.202.1 [*]  1.491 ms  1.540 ms  1.515 ms
+ 4  10.110.2.128 [*]  10.991 ms  10.967 ms  10.991 ms
+ 5  * * *
+ 6  10.110.2.37 [*]  1.200 ms  1.533 ms  1.754 ms
+ 7  10.110.2.54 [*]  4.293 ms  1.925 ms  1.901 ms
+ 8  195.208.208.250 [AS5480]  3.505 ms  3.628 ms  3.782 ms
+ 9  108.170.250.113 [AS15169]  12.655 ms  12.555 ms  12.681 ms
+10  * * *
+11  172.253.66.110 [AS15169]  21.254 ms  21.075 ms  20.829 ms
+12  209.85.254.135 [AS15169]  18.812 ms  19.621 ms  19.072 ms
+13  * * *
+14  * * *
+15  * * *
+16  * * *
+17  * * *
+18  * * *
+19  * * *
+20  * * *
+21  * * *
+22  8.8.8.8 [AS15169]  20.993 ms *  18.831 ms
+vagrant@ubuntu-focal:~$
+```
 
-8. Получится ли в качестве входного потока для pipe использовать только stderr команды, не потеряв при этом отображение stdout на pty? Напоминаем: по умолчанию через pipe передается только stdout команды слева от | на stdin команды справа. Это можно сделать, поменяв стандартные потоки местами через промежуточный новый дескриптор, который вы научились создавать в предыдущем вопросе.
-    
-    > например так:
+---
+---
 
-        vagrant@ubuntu-focal:~$ ll /root
-        ls: cannot open directory '/root': Permission denied
-        vagrant@ubuntu-focal:~$ ll /root  | grep Permission -c
-        ls: cannot open directory '/root': Permission denied
-        0
-        vagrant@ubuntu-focal:~$ ll /root 3>&2 2>&1 1>&3  | grep Permission -c
-        1
-        vagrant@ubuntu-focal:~$ 
-        
-    > Создали дескриптор 3 и перенаправили в stderr
-    
-    > stderr перенаправили в stdout
+6. Повторите задание 5 в утилите mtr. На каком участке наибольшая задержка - delay?
+---
+```buildoutcfg
+                                   My traceroute  [v0.93]
+ubuntu-focal (10.0.2.15)                                           2022-01-06T23:48:12+0000
+Keys:  Help   Display mode   Restart statistics   Order of fields   quit
+                                                   Packets               Pings
+ Host                                            Loss%   Snt   Last   Avg  Best  Wrst StDev
+ 1. AS???    10.0.2.2                             0.0%    29    0.4   0.4   0.3   0.7   0.1
+ 2. AS???    192.168.2.1                          0.0%    29    1.3   1.2   1.0   1.4   0.1
+ 3. AS???    10.110.202.1                         0.0%    29    1.4   2.1   1.2   6.7   1.5
+ 4. AS???    10.110.2.128                         0.0%    29  545.8  29.1   2.0 545.8 102.3
+ 5. (waiting for reply)
+ 6. AS???    10.110.2.37                          0.0%    29    1.8   2.0   1.4   6.4   1.2
+ 7. AS???    10.110.2.54                          0.0%    29    1.5   1.7   1.5   2.7   0.2
+ 8. AS???    195.208.208.250                      0.0%    29    3.4   5.1   3.2  33.3   5.5
+ 9. AS???    108.170.250.113                      0.0%    29    3.4   4.8   3.3  31.8   5.3
+10. AS???    216.239.51.32                       75.0%    29   20.6  21.1  20.5  23.2   1.0
+11. AS???    172.253.66.110                       0.0%    29   21.2  21.5  20.7  25.8   1.1
+12. AS???    209.85.254.135                       0.0%    29   21.7  22.4  21.4  25.5   1.0
+13. (waiting for reply)
+14. (waiting for reply)
+15. (waiting for reply)
+16. (waiting for reply)
+17. (waiting for reply)
+18. (waiting for reply)
+19. (waiting for reply)
+20. (waiting for reply)
+21. (waiting for reply)
+22. AS???    8.8.8.8                             21.4%    28   22.5  21.6  17.8  29.2   3.2
 
-    > stdout перенаправили в дескриптор 9
+```
+Есть также вариант со включенным X11-Forwarding'ом:
 
-    > grep поймал ошибку                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-    
-9. Что выведет команда cat /proc/$$/environ? Как еще можно получить аналогичный по содержанию вывод?
+![mtr](C:\Dev\devops-netology\img\mtr.png "mtr")
 
-    > Будут выведены переменные окружения. Аналогичные, но отформатированные данные можно получить командой
-        
-        vagrant@ubuntu-focal:~$ env                                                                                                                                                                                                                  
+В любом случае самые большие задержки получиличь на 4-м хопе (10.110.2.128)
 
-10. Используя man, опишите что доступно по адресам /proc/\<PID>/cmdline, /proc/\<PID>/exe.
+---
+---
+7. Какие DNS сервера отвечают за доменное имя dns.google? Какие A записи? воспользуйтесь утилитой dig
+---
+```buildoutcfg
+vagrant@ubuntu-focal:~$ dig NS dns.google
 
-    > /proc/[pid]/cmdline                        Этот файл только для чтения содержит полную командную строку для процесса, если только процесс не является зомби. В последнем случае в
-    этом файле ничего нет: то есть чтение этого файла вернет 0 символов. Аргументы командной строки отображаются в
-    этот файл представляет собой набор строк, разделенных нулевыми байтами ('\0'), с дополнительным нулевым байтом после последней строки.
+; <<>> DiG 9.16.1-Ubuntu <<>> NS dns.google
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59856
+;; flags: qr rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 1
 
-    > /proc/[pid]/exe    В Linux 2.2 и более поздних версиях этот файл представляет собой символическую ссылку, содержащую фактический путь к выполняемой команде. Эта символическая ссылка может быть разыменована в обычном режиме; попытка открыть ее приведет к открытию исполняемого файла. Вы даже можете ввести /proc/[pid]/exe
-    чтобы запустить другую копию того же исполняемого файла, который запускается процессом [pid]. Если путь был разорван, символическая ссылка будет содержать строку "(deleted)", добавленную к исходному пути. В многопоточном процессе содержимое
-    этой символической ссылки недоступны, если основной поток уже завершен (обычно путем вызова pthread_exit(3)).
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;dns.google.                    IN      NS
 
-11. Узнайте, какую наиболее старшую версию набора инструкций SSE поддерживает ваш процессор с помощью /proc/cpuinfo.
-    
-    > sse4_2
-    
-12. При открытии нового окна терминала и vagrant ssh создается новая сессия и выделяется pty. Это можно подтвердить командой tty, которая упоминалась в лекции 3.2. Однако:
+;; ANSWER SECTION:
+dns.google.             20741   IN      NS      ns2.zdns.google.
+dns.google.             20741   IN      NS      ns4.zdns.google.
+dns.google.             20741   IN      NS      ns1.zdns.google.
+dns.google.             20741   IN      NS      ns3.zdns.google.
 
-        vagrant@netology1:~$ ssh localhost 'tty'
-        not a tty
-    
-    Почитайте, почему так происходит, и как изменить поведение.
+;; Query time: 20 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53)
+;; WHEN: Fri Jan 07 00:27:17 UTC 2022
+;; MSG SIZE  rcvd: 116
 
-    > По умолчанию при выполнении команды на удаленной машине с использованием ssh для удаленного сеанса не выделяется TTY. 
-    
-    > тут возможны как минимум два варианта:  а) либо запустить с флагом -t , что вызывает принудительное создание псевдотерминала:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-        vagrant@ubuntu-focal:~$ ssh -t localhost 'tty'
-        /dev/pts/1
-        Connection to localhost closed.                                                                                                                                                                                                                                                                                                                          
+vagrant@ubuntu-focal:~$ dig dns.google
 
-    > ... б) либо зайти на сервер по ssh без удаленной команды, тогда TTY выделится:
+; <<>> DiG 9.16.1-Ubuntu <<>> dns.google
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 33855
+;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
 
-        vagrant@ubuntu-focal:~$ tty
-        /dev/pts/0
-        vagrant@ubuntu-focal:~$ ssh localhost
-        Welcome to Ubuntu 20.04.3 LTS (GNU/Linux 5.4.0-88-generic x86_64)
-        
-         * Documentation:  https://help.ubuntu.com
-         * Management:     https://landscape.canonical.com
-         * Support:        https://ubuntu.com/advantage
-        
-          System information as of Wed Oct  6 22:15:44 UTC 2021
-        
-          System load:  0.11              Processes:               124
-          Usage of /:   8.4% of 38.71GB   Users logged in:         1
-          Memory usage: 55%               IPv4 address for enp0s3: 10.0.2.15
-          Swap usage:   0%
-        
-         * Super-optimized for small spaces - read how we shrank the memory
-           footprint of MicroK8s to make it the smallest full K8s around.
-        
-           https://ubuntu.com/blog/microk8s-memory-optimisation
-        
-        50 updates can be applied immediately.
-        1 of these updates is a standard security update.
-        To see these additional updates run: apt list --upgradable
-        
-        
-        Last login: Wed Oct  6 22:12:52 2021 from 127.0.0.1
-        vagrant@ubuntu-focal:~$ tty
-        /dev/pts/1
-        vagrant@ubuntu-focal:~$ exit
-        logout
-        Connection to localhost closed.
-        vagrant@ubuntu-focal:~$                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;dns.google.                    IN      A
 
-13. Бывает, что есть необходимость переместить запущенный процесс из одной сессии в другую. Попробуйте сделать это, воспользовавшись reptyr. Например, так можно перенести в screen процесс, который вы запустили по ошибке в обычной SSH-сессии.
+;; ANSWER SECTION:
+dns.google.             840     IN      A       8.8.4.4
+dns.google.             840     IN      A       8.8.8.8
 
-    > Вот в этом было сложно разобраться. Но каким-то чудом я смог перехватить процесс 37548.
+;; Query time: 20 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53)
+;; WHEN: Fri Jan 07 00:27:30 UTC 2022
+;; MSG SIZE  rcvd: 71
 
-        vagrant@ubuntu-focal:~$ ps -ua
-        USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
-        root         628  0.0  0.2   7352  2180 ttyS0    Ss+  Oct06   0:00 /sbin/agetty -o -p -- \u --keep-baud 115200,38400,960
-        root         641  0.0  0.1   5828  1924 tty1     Ss+  Oct06   0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
-        root       37548  0.0  0.2   8984  2932 pts/4    Ss+  09:04   0:00 ping ya.ru
-        root       37584  0.0  0.3   8960  3904 pts/3    Ss   09:05   0:00 /bin/bash
-        root       37600  6.0  0.1   2592  1948 pts/3    S+   09:05   0:06 reptyr 37548
-        vagrant    37746  0.3  0.5  10032  5136 pts/2    Ss   09:07   0:00 -bash
-        vagrant    37760  0.0  0.3  10812  3648 pts/2    R+   09:07   0:00 ps -ua
-        vagrant@ubuntu-focal:~$                                                                                                                                                                                                                                                               
+vagrant@ubuntu-focal:~$
 
-14. sudo echo string > /root/new_file не даст выполнить перенаправление под обычным пользователем, так как перенаправлением занимается процесс shell'а, который запущен без sudo под вашим пользователем. Для решения данной проблемы можно использовать конструкцию echo string | sudo tee /root/new_file. Узнайте что делает команда tee и почему в отличие от sudo echo команда с sudo tee будет работать.
+```
 
-      > tee читает из stdin и пишет как в stdout, так и в файл, который был указан в качестве аргумента
-                                                                                                                                                                                                                                                                                                                                                                                                                   
+---
+---
+8. Проверьте PTR записи для IP адресов из задания 7. Какое доменное имя привязано к IP? воспользуйтесь утилитой dig
+---
+```buildoutcfg
+vagrant@ubuntu-focal:~$ dig -x 8.8.4.4
+
+; <<>> DiG 9.16.1-Ubuntu <<>> -x 8.8.4.4
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 55179
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;4.4.8.8.in-addr.arpa.          IN      PTR
+
+;; ANSWER SECTION:
+4.4.8.8.in-addr.arpa.   19797   IN      PTR     dns.google.
+
+;; Query time: 20 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53)
+;; WHEN: Fri Jan 07 00:30:26 UTC 2022
+;; MSG SIZE  rcvd: 73
+
+vagrant@ubuntu-focal:~$ dig -x 8.8.8.8
+
+; <<>> DiG 9.16.1-Ubuntu <<>> -x 8.8.8.8
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 21916
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;8.8.8.8.in-addr.arpa.          IN      PTR
+
+;; ANSWER SECTION:
+8.8.8.8.in-addr.arpa.   18665   IN      PTR     dns.google.
+
+;; Query time: 16 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53)
+;; WHEN: Fri Jan 07 00:30:33 UTC 2022
+;; MSG SIZE  rcvd: 73
+
+vagrant@ubuntu-focal:~$
+
+```
+К обоим IP привязан домен _dns.google._
