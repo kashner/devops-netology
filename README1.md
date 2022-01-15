@@ -176,7 +176,7 @@ hosts = {"drive.google.com": "64.233.165.194",
          "google.com": "74.125.205.139"}
 for host, ip in hosts.items():
 	old_ip = ip
-	new_ip = socket.getgethostbyname(host)
+	new_ip = socket.gethostbyname(host)
 	if old_ip != new_ip:
 		print(f'[ERROR] "{host}" IP mismatch: "{old_ip}" "{new_ip}"')
 	print(f'"{host}" - "{new_ip}"')
