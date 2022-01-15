@@ -1,269 +1,211 @@
-# devops-netology
+# Домашнее задание к занятию "4.2. Использование Python для решения типовых DevOps задач"
 
-### «3.6. Компьютерные сети, лекция 1»
-1.  Работа c HTTP через телнет.
-   * Подключитесь утилитой телнет к сайту stackoverflow.com telnet stackoverflow.com 80
-   * отправьте HTTP запрос
-```GET /questions HTTP/1.0
-HOST: stackoverflow.com
-[press enter]
-[press enter]
+## Обязательная задача 1
+
+Есть скрипт:
+```python
+#!/usr/bin/env python3
+a = 1
+b = '2'
+c = a + b
 ```
-   * В ответе укажите полученный HTTP код, что он означает?
----
-```buildoutcfg
-vagrant@ubuntu-focal:~$ telnet stackoverflow.com 80
-Trying 151.101.129.69...
-Connected to stackoverflow.com.
-Escape character is '^]'.
-GET /questions HTTP/1.0
-HOST: stackoverflow.com
 
-HTTP/1.1 301 Moved Permanently
-cache-control: no-cache, no-store, must-revalidate
-location: https://stackoverflow.com/questions
-x-request-guid: f9ea2aa0-7212-4c1f-9cc0-8c0aad3b7276
-feature-policy: microphone 'none'; speaker 'none'
-content-security-policy: upgrade-insecure-requests; frame-ancestors 'self' https://stackexchange.com
-Accept-Ranges: bytes
-Date: Thu, 06 Jan 2022 22:35:20 GMT
-Via: 1.1 varnish
-Connection: close
-X-Served-By: cache-hhn4080-HHN
-X-Cache: MISS
-X-Cache-Hits: 0
-X-Timer: S1641508521.580849,VS0,VE170
-Vary: Fastly-SSL
-X-DNS-Prefetch-Control: off
-Set-Cookie: prov=bad74251-2482-4998-0d67-fd18ced79725; domain=.stackoverflow.com; expires=Fri, 01-Jan-2055 00:00:00 GMT; path=/; HttpOnly
+### Вопросы:
+| Вопрос  | Ответ |
+| ------------- | ------------- |
+| Какое значение будет присвоено переменной `c`?  | Traceback (most recent call last):  File "<stdin>", line 1, in <module>TypeError: unsupported operand type(s) for +: 'int' and 'str'|
+| Как получить для переменной `c` значение 12?  | ???  |
+| Как получить для переменной `c` значение 3?  | ???  |
 
-Connection closed by foreign host.
+## Обязательная задача 2
+Мы устроились на работу в компанию, где раньше уже был DevOps Engineer. Он написал скрипт, позволяющий узнать, какие файлы модифицированы в репозитории, относительно локальных изменений. Этим скриптом недовольно начальство, потому что в его выводе есть не все изменённые файлы, а также непонятен полный путь к директории, где они находятся. Как можно доработать скрипт ниже, чтобы он исполнял требования вашего руководителя?
+
+```python
+#!/usr/bin/env python3
+import os
+bash_command = ["cd ~/netology/sysadm-homeworks", "git status"]
+result_os = os.popen(' && '.join(bash_command)).read()
+is_change = False
+for result in result_os.split('\n'):
+    if result.find('modified') != -1:
+        prepare_result = result.replace('\tmodified:   ', '')
+        print(prepare_result)
+        break
+```
+
+### Ваш скрипт:
+```python
+#!/usr/bin/env python3
+
+import os
+
+
+repo_path = "~/devops-netology"
+norm_repo_path = os.path.normpath(os.path.expanduser(repo_path))
+# print(repo_path)
+# print(norm_repo_path)
+bash_command = [f"cd {norm_repo_path}", "git status"]
+result_os = os.popen(' && '.join(bash_command)).read()
+# is_change = False
+for result in result_os.split('\n'):
+    if result.find('modified') != -1:
+        prepare_result = result.replace('\tmodified:   ', '')
+        print(os.path.join(norm_repo_path, prepare_result))
+    else:
+        pass
+
+```
+
+### Вывод скрипта при запуске при тестировании:
+```shell
+vagrant@ubuntu-focal:~/devops-netology$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   README0.md
+        modified:   README3.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        git_check.py
+
+no changes added to commit (use "git add" and/or "git commit -a")
+vagrant@ubuntu-focal:~/devops-netology$
+vagrant@ubuntu-focal:~/devops-netology$ ./git_check.py
+/home/vagrant/devops-netology/README0.md
+/home/vagrant/devops-netology/README3.md
+vagrant@ubuntu-focal:~/devops-netology$ 
+```
+
+
+## Обязательная задача 3
+1. Доработать скрипт выше так, чтобы он мог проверять не только локальный репозиторий в текущей директории, а также умел воспринимать путь к репозиторию, который мы передаём как входной параметр. Мы точно знаем, что начальство коварное и будет проверять работу этого скрипта в директориях, которые не являются локальными репозиториями.
+
+### Ваш скрипт:
+```python
+#!/usr/bin/env python3
+
+import os, sys
+
+try:
+    repo_path = sys.argv[1]
+except IndexError:
+    print("Please run the script with the repository path")
+    exit()
+norm_repo_path = os.path.normpath(os.path.expanduser(repo_path))
+try:
+    os.chdir(norm_repo_path)
+except FileNotFoundError:
+    print("There is no such folder in the path. Set the correct path.")
+    exit()
+file_list = os.popen('ls -a').read().split('\n')
+if '.git' not in file_list:
+    print("There is no repository in this directory.\n \
+    Please try again by specifying a different path.")
+else:
+    result_list = os.popen('git status --porcelain').read().split('\n')
+    changed_files_dict = {}
+    for line in result_list:
+        line_list = line.split(' ')
+        # print(line_list)
+        for i in range(len(line_list)-1):
+            # print(line, line_list[i])
+            if line_list[i] in ['M','A', 'AM', '??']:
+                if line_list[i] == 'A':
+                    changed_files_dict.update({line_list[-1]: 'Added'})
+                elif line_list[i] == 'M':
+                    changed_files_dict.update({line_list[-1]: 'Modified'})
+                elif line_list[i] == 'AM':
+                    changed_files_dict.update({line_list[-1]: 'Added and Modified'})
+                else:
+                    changed_files_dict.update({line_list[-1]: 'Untracked'})
+    for key, value in changed_files_dict.items():
+        print(f"{key} -- {value}")
+	if changed_files_dict == {}:
+    	print('Not changed in this repository')
+```
+
+### Вывод скрипта при запуске при тестировании:
+```shell
+vagrant@ubuntu-focal:~$ cp -r devops-netology/ devops-netology2/
 vagrant@ubuntu-focal:~$
-```
-В данном случае код редиректа 301 говорит о том, что ресурс перемещен на https://stackoverflow.com/questions
-
----
----
-2. Повторите задание 1 в браузере, используя консоль разработчика F12.
-* откройте вкладку Network
-* отправьте запрос http://stackoverflow.com
-* найдите первый ответ HTTP сервера, откройте вкладку Headers
-* укажите в ответе полученный HTTP код.
-* проверьте время загрузки страницы, какой запрос обрабатывался дольше всего?
-* приложите скриншот консоли браузера в ответ.
----
-Первый запрос:
-```buildoutcfg
-Request URL: http://stackoverflow.com/
-Request Method: GET
-Status Code: 307 Internal Redirect
-Referrer Policy: strict-origin-when-cross-origin
-Location: https://stackoverflow.com/
-Non-Authoritative-Reason: HSTS
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.85 YaBrowser/21.11.4.727 Yowser/2.5 Safari/537.36
-```
-Страница загрузилась за 637 мс. Дольше всех обрабатывался второй запрос (303 мс), т.е. первый успешный запрос (с кодом 200):
-
-![stackoverflow_network](/img/stackoverflow_page.png "stackoverflow")
-
----
----
-3. Какой IP адрес у вас в интернете?
----
-![whoer](/img/whoer.png "whoer")
-
----
----
-
-4. Какому провайдеру принадлежит ваш IP адрес? Какой автономной системе AS? Воспользуйтесь утилитой whois
----
-```buildoutcfg
-vagrant@ubuntu-focal:~$ whois 93.185.192.92 | grep 'netname'
-netname:        AVIEL-NET
-vagrant@ubuntu-focal:~$ whois 93.185.192.92 | grep 'origin'
-origin:         AS35271
+vagrant@ubuntu-focal:~$ cp devops-netology/git_check.py git_check.py
 vagrant@ubuntu-focal:~$
-```
-
----
----
-
-5. Через какие сети проходит пакет, отправленный с вашего компьютера на адрес 8.8.8.8? Через какие AS? Воспользуйтесь утилитой traceroute
----
-```buildoutcfg
-vagrant@ubuntu-focal:~$ traceroute -IAn 8.8.8.8
-traceroute to 8.8.8.8 (8.8.8.8), 30 hops max, 60 byte packets
- 1  10.0.2.2 [*]  0.205 ms  0.166 ms  0.150 ms
- 2  192.168.2.1 [*]  1.296 ms  1.278 ms  1.310 ms
- 3  10.110.202.1 [*]  1.491 ms  1.540 ms  1.515 ms
- 4  10.110.2.128 [*]  10.991 ms  10.967 ms  10.991 ms
- 5  * * *
- 6  10.110.2.37 [*]  1.200 ms  1.533 ms  1.754 ms
- 7  10.110.2.54 [*]  4.293 ms  1.925 ms  1.901 ms
- 8  195.208.208.250 [AS5480]  3.505 ms  3.628 ms  3.782 ms
- 9  108.170.250.113 [AS15169]  12.655 ms  12.555 ms  12.681 ms
-10  * * *
-11  172.253.66.110 [AS15169]  21.254 ms  21.075 ms  20.829 ms
-12  209.85.254.135 [AS15169]  18.812 ms  19.621 ms  19.072 ms
-13  * * *
-14  * * *
-15  * * *
-16  * * *
-17  * * *
-18  * * *
-19  * * *
-20  * * *
-21  * * *
-22  8.8.8.8 [AS15169]  20.993 ms *  18.831 ms
+vagrant@ubuntu-focal:~$ ./git_check.py
+Please run the script with the repository path
+vagrant@ubuntu-focal:~$ ./git_check.py s
+There is no such folder in the path. Set the correct path.
+vagrant@ubuntu-focal:~$ ./git_check.py ~/devops-netology/
+README0.md -- Modified
+README3.md -- Modified
+git_check.py -- Added and Modified
+vagrant@ubuntu-focal:~$ ./git_check.py ~/devops-netology2/
+README0.md -- Modified
+README3.md -- Modified
+git_check.py -- Added and Modified
 vagrant@ubuntu-focal:~$
-```
-
----
----
-
-6. Повторите задание 5 в утилите mtr. На каком участке наибольшая задержка - delay?
----
-```buildoutcfg
-                                   My traceroute  [v0.93]
-ubuntu-focal (10.0.2.15)                                           2022-01-06T23:48:12+0000
-Keys:  Help   Display mode   Restart statistics   Order of fields   quit
-                                                   Packets               Pings
- Host                                            Loss%   Snt   Last   Avg  Best  Wrst StDev
- 1. AS???    10.0.2.2                             0.0%    29    0.4   0.4   0.3   0.7   0.1
- 2. AS???    192.168.2.1                          0.0%    29    1.3   1.2   1.0   1.4   0.1
- 3. AS???    10.110.202.1                         0.0%    29    1.4   2.1   1.2   6.7   1.5
- 4. AS???    10.110.2.128                         0.0%    29  545.8  29.1   2.0 545.8 102.3
- 5. (waiting for reply)
- 6. AS???    10.110.2.37                          0.0%    29    1.8   2.0   1.4   6.4   1.2
- 7. AS???    10.110.2.54                          0.0%    29    1.5   1.7   1.5   2.7   0.2
- 8. AS???    195.208.208.250                      0.0%    29    3.4   5.1   3.2  33.3   5.5
- 9. AS???    108.170.250.113                      0.0%    29    3.4   4.8   3.3  31.8   5.3
-10. AS???    216.239.51.32                       75.0%    29   20.6  21.1  20.5  23.2   1.0
-11. AS???    172.253.66.110                       0.0%    29   21.2  21.5  20.7  25.8   1.1
-12. AS???    209.85.254.135                       0.0%    29   21.7  22.4  21.4  25.5   1.0
-13. (waiting for reply)
-14. (waiting for reply)
-15. (waiting for reply)
-16. (waiting for reply)
-17. (waiting for reply)
-18. (waiting for reply)
-19. (waiting for reply)
-20. (waiting for reply)
-21. (waiting for reply)
-22. AS???    8.8.8.8                             21.4%    28   22.5  21.6  17.8  29.2   3.2
+vagrant@ubuntu-focal:~$ ./git_check.py ~/.ssh
+There is no repository in this directory.
+     Please try again by specifying a different path.
+vagrant@ubuntu-focal:~$
+vagrant@ubuntu-focal:~/devops-netology$ git add *
+vagrant@ubuntu-focal:~/devops-netology$ git commit -m 'comment'
+[main 0c87030] comment
+ 3 files changed, 44 insertions(+), 24 deletions(-)
+ rewrite git_check.py (82%)
+vagrant@ubuntu-focal:~/devops-netology$ ./git_check.py ~/devops-netology/
+Not changed in this repository
+vagrant@ubuntu-focal:~/devops-netology$
 
 ```
-Есть также вариант со включенным X11-Forwarding'ом:
 
-![mtr](/img/mtr.png "mtr")
+## Обязательная задача 4
+1. Наша команда разрабатывает несколько веб-сервисов, доступных по http. Мы точно знаем, что на их стенде нет никакой балансировки, кластеризации, за DNS прячется конкретный IP сервера, где установлен сервис. Проблема в том, что отдел, занимающийся нашей инфраструктурой очень часто меняет нам сервера, поэтому IP меняются примерно раз в неделю, при этом сервисы сохраняют за собой DNS имена. Это бы совсем никого не беспокоило, если бы несколько раз сервера не уезжали в такой сегмент сети нашей компании, который недоступен для разработчиков. Мы хотим написать скрипт, который опрашивает веб-сервисы, получает их IP, выводит информацию в стандартный вывод в виде: <URL сервиса> - <его IP>. Также, должна быть реализована возможность проверки текущего IP сервиса c его IP из предыдущей проверки. Если проверка будет провалена - оповестить об этом в стандартный вывод сообщением: [ERROR] <URL сервиса> IP mismatch: <старый IP> <Новый IP>. Будем считать, что наша разработка реализовала сервисы: `drive.google.com`, `mail.google.com`, `google.com`.
 
-В любом случае самые большие задержки получиличь на 4-м хопе (10.110.2.128)
+### Ваш скрипт:
+```python
+#!/usr/bin/env python3
 
----
----
-7. Какие DNS сервера отвечают за доменное имя dns.google? Какие A записи? воспользуйтесь утилитой dig
----
-```buildoutcfg
-vagrant@ubuntu-focal:~$ dig NS dns.google
+import socket
 
-; <<>> DiG 9.16.1-Ubuntu <<>> NS dns.google
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59856
-;; flags: qr rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 1
+hosts = {"drive.google.com": "64.233.165.194", 
+         "mail.google.com": "192.168.0.1",
+         "google.com": "74.125.205.139"}
+for host, ip in hosts.items():
+	old_ip = ip
+	new_ip = socket.getgethostbyname(host)
+	if old_ip != new_ip:
+		print(f'[ERROR] "{host}" IP mismatch: "{old_ip}" "{new_ip}"')
+	print(f'"{host}" - "{new_ip}"')
 
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 65494
-;; QUESTION SECTION:
-;dns.google.                    IN      NS
+```
 
-;; ANSWER SECTION:
-dns.google.             20741   IN      NS      ns2.zdns.google.
-dns.google.             20741   IN      NS      ns4.zdns.google.
-dns.google.             20741   IN      NS      ns1.zdns.google.
-dns.google.             20741   IN      NS      ns3.zdns.google.
-
-;; Query time: 20 msec
-;; SERVER: 127.0.0.53#53(127.0.0.53)
-;; WHEN: Fri Jan 07 00:27:17 UTC 2022
-;; MSG SIZE  rcvd: 116
-
-vagrant@ubuntu-focal:~$ dig dns.google
-
-; <<>> DiG 9.16.1-Ubuntu <<>> dns.google
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 33855
-;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
-
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 65494
-;; QUESTION SECTION:
-;dns.google.                    IN      A
-
-;; ANSWER SECTION:
-dns.google.             840     IN      A       8.8.4.4
-dns.google.             840     IN      A       8.8.8.8
-
-;; Query time: 20 msec
-;; SERVER: 127.0.0.53#53(127.0.0.53)
-;; WHEN: Fri Jan 07 00:27:30 UTC 2022
-;; MSG SIZE  rcvd: 71
-
+### Вывод скрипта при запуске при тестировании:
+```shell
+vagrant@ubuntu-focal:~$ vi ip_check.py
+vagrant@ubuntu-focal:~$ chmod +x ip_check.py
+vagrant@ubuntu-focal:~$ ./ip_check.py
+"drive.google.com" - "64.233.165.194"
+[ERROR] "mail.google.com" IP mismatch: "192.168.0.1" "64.233.161.83"
+"mail.google.com" - "64.233.161.83"
+"google.com" - "74.125.205.139"
 vagrant@ubuntu-focal:~$
 
 ```
 
----
----
-8. Проверьте PTR записи для IP адресов из задания 7. Какое доменное имя привязано к IP? воспользуйтесь утилитой dig
----
-```buildoutcfg
-vagrant@ubuntu-focal:~$ dig -x 8.8.4.4
+## Дополнительное задание (со звездочкой*) - необязательно к выполнению
 
-; <<>> DiG 9.16.1-Ubuntu <<>> -x 8.8.4.4
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 55179
-;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+Так получилось, что мы очень часто вносим правки в конфигурацию своей системы прямо на сервере. Но так как вся наша команда разработки держит файлы конфигурации в github и пользуется gitflow, то нам приходится каждый раз переносить архив с нашими изменениями с сервера на наш локальный компьютер, формировать новую ветку, коммитить в неё изменения, создавать pull request (PR) и только после выполнения Merge мы наконец можем официально подтвердить, что новая конфигурация применена. Мы хотим максимально автоматизировать всю цепочку действий. Для этого нам нужно написать скрипт, который будет в директории с локальным репозиторием обращаться по API к github, создавать PR для вливания текущей выбранной ветки в master с сообщением, которое мы вписываем в первый параметр при обращении к py-файлу (сообщение не может быть пустым). При желании, можно добавить к указанному функционалу создание новой ветки, commit и push в неё изменений конфигурации. С директорией локального репозитория можно делать всё, что угодно. Также, принимаем во внимание, что Merge Conflict у нас отсутствуют и их точно не будет при push, как в свою ветку, так и при слиянии в master. Важно получить конечный результат с созданным PR, в котором применяются наши изменения. 
 
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 65494
-;; QUESTION SECTION:
-;4.4.8.8.in-addr.arpa.          IN      PTR
-
-;; ANSWER SECTION:
-4.4.8.8.in-addr.arpa.   19797   IN      PTR     dns.google.
-
-;; Query time: 20 msec
-;; SERVER: 127.0.0.53#53(127.0.0.53)
-;; WHEN: Fri Jan 07 00:30:26 UTC 2022
-;; MSG SIZE  rcvd: 73
-
-vagrant@ubuntu-focal:~$ dig -x 8.8.8.8
-
-; <<>> DiG 9.16.1-Ubuntu <<>> -x 8.8.8.8
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 21916
-;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
-
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 65494
-;; QUESTION SECTION:
-;8.8.8.8.in-addr.arpa.          IN      PTR
-
-;; ANSWER SECTION:
-8.8.8.8.in-addr.arpa.   18665   IN      PTR     dns.google.
-
-;; Query time: 16 msec
-;; SERVER: 127.0.0.53#53(127.0.0.53)
-;; WHEN: Fri Jan 07 00:30:33 UTC 2022
-;; MSG SIZE  rcvd: 73
-
-vagrant@ubuntu-focal:~$
-
+### Ваш скрипт:
+```python
+???
 ```
-К обоим IP привязан домен _dns.google._
+
+### Вывод скрипта при запуске при тестировании:
+```
+???
+```
